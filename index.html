@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#031B16">
+  <meta name="apple-mobile-web-app-title" content="VA Office">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Добавьте VA Office на главный экран iPhone и открывайте своё рабочее пространство.">
+  <title>VA Office</title>
+  <link rel="apple-touch-icon" sizes="262x262" href="./apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="./apple-touch-icon.png">
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./launch.js"></script>
+</head>
+<body data-launch-mode="manual">
+  <main>
+    <header>
+      <img src="./apple-touch-icon.png" alt="Утверждённая иконка VA Office" width="112" height="112">
+      <p class="eyebrow">ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО</p>
+      <h1>VA Office</h1>
+      <p class="intro">Всегда под рукой.<br>Добавьте значок на главный экран iPhone.</p>
+    </header>
+    <section class="steps" aria-labelledby="install-title">
+      <p class="eyebrow">УСТАНОВКА НА IPHONE</p>
+      <h2 id="install-title">Несколько простых действий</h2>
+      <ol>
+        <li><span>1</span><div><strong>Откройте эту страницу в Safari</strong><p>Если ссылка открылась в Telegram, выберите в его меню открытие в Safari.</p></div></li>
+        <li><span>2</span><div><strong>Нажмите «Поделиться»</strong><p>Затем выберите «На экран Домой».</p></div></li>
+        <li><span>3</span><div><strong>Добавьте VA Office</strong><p>Если есть переключатель «Открыть как веб-приложение», выключите его. Проверьте имя и значок, затем нажмите «Добавить».</p></div></li>
+      </ol>
+      <p class="hint">Для запуска в Safari он должен быть браузером по умолчанию.</p>
+    </section>
+    <section class="launch" aria-label="Запуск VA Office">
+      <p id="launch-note">После нажатия значка откроется эта страница. Нажмите кнопку ниже, чтобы перейти в VA Office.</p>
+      <a class="button" id="open-app" href="https://script.google.com/macros/s/AKfycbwnDHt6Txl6LiNyD1DN5sJlEuTU75inN-IYjceChsYgxGYlL2q8u-q3y4a3CAHXvHGt/exec" rel="noreferrer">Открыть VA Office <span aria-hidden="true">↗</span></a>
+      <p class="small">Обычный вход по email-коду. Ваши права доступа сохраняются.</p>
+      <p id="launch-status" role="status" hidden></p>
+    </section>
+    <footer>VA Office</footer>
+  </main>
+</body>
+</html>
