@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-mobile-web-app-title" content="VA Office"><title>VA Office</title><link rel="apple-touch-icon" href="./apple-touch-icon.png"><style>
+*{box-sizing:border-box}html{color-scheme:dark;background:#031b16;color:#f2f6f3;font:16px/1.38 system-ui,-apple-system,sans-serif}body{margin:0}main{width:min(100%,390px);margin:0 auto;padding:20px 14px 24px}header{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid #9e8b5966}header img{width:52px;height:52px;border-radius:12px}h1{font:normal 32px Georgia,serif;margin:0}header p,p{margin:0;color:#bfd3c8}ol{list-style:none;padding:0;margin:12px 0}li{display:flex;align-items:center;gap:12px;margin:6px 0;background:linear-gradient(110deg,#11382c,#0e2a22);border-radius:12px;padding:10px}svg{width:34px;flex:none;color:#d4bb81}strong{font-size:17px}li p,details p{font-size:15px}summary{cursor:pointer;padding:10px 0;color:#bfd3c8}details p{padding-bottom:10px}a{display:block;text-align:center;background:#9fd6b1;color:#072319;font-weight:700;text-decoration:none;padding:13px;border-radius:12px}button{font:inherit;background:transparent;border:0;color:#bfd3c8;padding:12px 0;text-decoration:underline;cursor:pointer}[hidden]{display:none}
+</style></head><body><main><header><img src="./apple-touch-icon.png" alt=""><div><h1>VA Office</h1><p id="subtitle">Установка на iPhone</p></div></header><button hidden id="toggle" aria-controls="guide" aria-expanded="false">Показать инструкцию</button><section id="guide"><ol><li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="20" cy="20" r="15"/><path d="m26 12-4 12-9 5 4-12z"/></svg><div><strong>1. Откройте в Safari</strong><p>Эту страницу установки.</p></div></li><li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 18H9v16h22V18h-4M20 25V5m-7 7 7-7 7 7"/></svg><div><strong>2. Нажмите «Поделиться»</strong><p>Квадрат со стрелкой вверх.</p></div></li><li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="30" height="26" rx="5"/><path d="M20 13v14m-7-7h14"/></svg><div><strong>3. Выберите «На экран Домой»</strong><p>В меню «Поделиться».</p></div></li><li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="34" height="17" rx="9"/><circle cx="12" cy="20.5" r="5" fill="currentColor"/></svg><div><strong>4. Добавьте VA Office</strong><p>Выключите «Открыть как веб-приложение», если есть. Проверьте имя VA Office и нажмите «Добавить».</p></div></li></ol><details><summary>Не получается?</summary><p>В Telegram откройте ссылку в обычном Safari. Если пункт «На экран Домой» не виден, прокрутите меню действий. Для повторного входа используйте тот же браузер и профиль.</p></details></section><a id="launch" href="https://script.google.com/macros/s/AKfycbwnDHt6Txl6LiNyD1DN5sJlEuTU75inN-IYjceChsYgxGYlL2q8u-q3y4a3CAHXvHGt/exec">Открыть VA Office</a></main><script>
+const guide=document.getElementById('guide'), toggle=document.getElementById('toggle');
+try { if(localStorage.getItem('va-office-guide-seen')==='1'){guide.hidden=true;toggle.hidden=false;document.getElementById('subtitle').textContent='Рабочее приложение';} } catch {}
+toggle.onclick=()=>{guide.hidden=!guide.hidden;toggle.setAttribute('aria-expanded',String(!guide.hidden));toggle.textContent=guide.hidden?'Показать инструкцию':'Свернуть инструкцию';};
+document.getElementById('launch').onclick=()=>{try{localStorage.setItem('va-office-guide-seen','1')}catch{}};
+</script><script>// Loaded by the existing installation page. The ordinary anchor is the fallback.
+const vaOrigin='https://n-mtchf2bbxznzm7ntmjk32ryvcnj4o4qrbfqeubq-0lu-script.googleusercontent.com';
+let vaPopup,vaKeys;
+const vaReq=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+async function loadDevicePair(){
+ const o=indexedDB.open('va-office-device-v11',1);
+ o.onupgradeneeded=()=>o.result.createObjectStore('keys');
+ const db=await vaReq(o);
+ try{let pair=await vaReq(db.transaction('keys').objectStore('keys').get('current'));
+ if(!pair){const generated=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},false,['sign','verify']);
+ const tx=db.transaction('keys','readwrite'),store=tx.objectStore('keys'),r=store.get('current');
+ r.onsuccess=()=>{pair=r.result||generated;if(!r.result)store.add(generated,'current')};
+ await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onabort=()=>no(tx.error)})}
+ if(pair.privateKey.extractable)throw Error();return pair;
+ }finally{db.close()}
+}
+const vaHex=b=>Array.from(new Uint8Array(b),v=>v.toString(16).padStart(2,'0')).join('');
+const vaSeen=new Set();
+document.getElementById('launch').addEventListener('click',e=>{
+ if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+ vaPopup=window.open(e.currentTarget.href,'_blank');vaSeen.clear();
+ if(vaPopup)e.preventDefault();
+});
+window.addEventListener('message',async e=>{
+ const d=e.data;if(!vaPopup||e.origin!==vaOrigin||d?.kind!=='va11'||!/^[-a-f0-9]{36}$/.test(d.id)||vaSeen.has(d.id))return;
+ try{if(e.source!==vaPopup.frames[0].frames[0])return}catch{return}
+ if(d.op!=='key' && !(d.op==='sign'&&/^VA11:(login|bind):[a-f0-9]{64}$/.test(d.challenge)))return;
+ vaSeen.add(d.id);let value=null;
+ try{const pair=await (vaKeys||=loadDevicePair());
+ if(d.op==='key'){const jwk=await crypto.subtle.exportKey('jwk',pair.publicKey);value=vaHex(Uint8Array.from(atob(jwk.n.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)))}
+ else value=vaHex(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,new TextEncoder().encode(d.challenge)));
+ }catch{vaKeys=null}
+ e.source.postMessage({kind:'va11-result',id:d.id,value},vaOrigin);
+});
+</script></body></html>
