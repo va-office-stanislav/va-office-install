@@ -1,0 +1,8 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>W-15 · диагностика</title><h1>W-15 · проверка связи</h1><p>Изолированный тест. Данные для входа не требуются.</p><button id="start">Открыть тестовое окно</button> <button id="ping" disabled>Проверить канал</button><p id="status" role="status"></p><script>
+const gas='https://n-mtchf2bbxznzm7ntmjk32ryvcnj4o4qrbfqeubq-0lu-script.googleusercontent.com';
+const url='https://script.google.com/macros/s/AKfycbzDF4ypTrqLqVO0FVeqS1mpTNkJO-9XrKedl_0e5O0/dev?w15=channel';
+let popup,peer,attempt,nonce,used=true;const out=document.querySelector('#status');
+start.onclick=()=>{popup=window.open(url,'_blank');ping.disabled=!popup;out.textContent=popup?'Дождитесь готовности окна, затем проверьте канал.':'Окно недоступно';};
+ping.onclick=()=>{try{if(!popup||popup.closed)throw Error();peer=popup.frames[0].frames[0];if(!peer)throw Error();attempt=crypto.randomUUID();nonce=crypto.randomUUID();used=false;peer.postMessage({type:'W15.ping',attempt,nonce},gas);out.textContent='Ожидание ответа';setTimeout(()=>{if(!used){used=true;out.textContent='Ответ не получен'}},10000)}catch{out.textContent='Окно или вложенный фрейм недоступны'}};
+window.addEventListener('message',e=>{if(used||e.origin!==gas||e.source!==peer||e.data?.type!=='W15.pong'||e.data.attempt!==attempt||e.data.nonce!==nonce)return;used=true;out.textContent='W15 — подтверждён ответ из Apps Script'});
+</script></html>
