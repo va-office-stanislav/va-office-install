@@ -1,8 +1,33 @@
-<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>W-15 · диагностика</title><h1>W-15 · проверка связи</h1><p>Изолированный тест. Данные для входа не требуются.</p><button id="start">Открыть тестовое окно</button> <button id="ping" disabled>Проверить канал</button><p id="status" role="status"></p><script>
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>W-15 · диагностика</title><h1>W-15 · проверка связи</h1><p>Изолированный тест. Данные для входа не требуются.</p><button id="start">Открыть тестовое окно</button> <button id="ping" disabled>Проверить устройство</button><p id="status" role="status"></p><script>
 const gas='https://n-mtchf2bbxznzm7ntmjk32ryvcnj4o4qrbfqeubq-0lu-script.googleusercontent.com';
 const url='https://script.google.com/macros/s/AKfycbzDF4ypTrqLqVO0FVeqS1mpTNkJO-9XrKedl_0e5O0/dev?w15=channel';
-let popup,peer,attempt,nonce,used=true;const out=document.querySelector('#status');
-start.onclick=()=>{popup=window.open(url,'_blank');ping.disabled=!popup;out.textContent=popup?'Дождитесь готовности окна, затем проверьте канал.':'Окно недоступно';};
-ping.onclick=()=>{try{if(!popup||popup.closed)throw Error();peer=popup.frames[0].frames[0];if(!peer)throw Error();attempt=crypto.randomUUID();nonce=crypto.randomUUID();used=false;peer.postMessage({type:'W15.ping',attempt,nonce},gas);out.textContent='Ожидание ответа';setTimeout(()=>{if(!used){used=true;out.textContent='Ответ не получен'}},10000)}catch{out.textContent='Окно или вложенный фрейм недоступны'}};
-window.addEventListener('message',e=>{if(used||e.origin!==gas||e.source!==peer||e.data?.type!=='W15.pong'||e.data.attempt!==attempt||e.data.nonce!==nonce)return;used=true;out.textContent='W15 — подтверждён ответ из Apps Script'});
+
+let popup,peer,attempt,busy=false;const pending=new Map(),out=document.querySelector('#status');
+start.onclick=()=>{popup=window.open(url,'_blank');ping.disabled=!popup;out.textContent='Дождитесь окна Apps Script';};
+function rpc(op,payload){const nonce=crypto.randomUUID();return new Promise((resolve,reject)=>{
+ const timer=setTimeout(()=>{pending.delete(nonce);reject(Error('нет ответа'))},40000);
+ pending.set(nonce,x=>{clearTimeout(timer);x.error?reject(Error(x.error)):resolve(x.value)});
+ peer.postMessage({type:'w15',attempt,nonce,op,payload},gas);
+});}
+onmessage=e=>{const x=e.data;if(e.origin!==gas||e.source!==peer||x?.type!=='w15.result'||x.attempt!==attempt)return;
+ const done=pending.get(x.nonce);if(done){pending.delete(x.nonce);done(x)}};
+const req=r=>new Promise((ok,no)=>{r.onsuccess=()=>ok(r.result);r.onerror=()=>no(Error('IndexedDB'))});
+const hex=a=>Array.from(new Uint8Array(a),b=>b.toString(16).padStart(2,'0')).join('');
+ping.onclick=async()=>{if(busy)return;busy=true;try{
+ peer=popup.frames[0].frames[0];attempt=crypto.randomUUID();
+ const o=indexedDB.open('w15-fixture',1);o.onupgradeneeded=()=>o.result.createObjectStore('keys');const db=await req(o);
+ let k=await req(db.transaction('keys').objectStore('keys').get('fixture')),fresh=!k;
+ if(fresh){k=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},false,['sign','verify']);
+ const tx=db.transaction('keys','readwrite');tx.objectStore('keys').put(k,'fixture');await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onabort=no})}
+ db.close();if(k.privateKey.extractable)throw Error('extractable');
+ const jwk=await crypto.subtle.exportKey('jwk',k.publicKey),n=hex(Uint8Array.from(atob(jwk.n.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)));
+ const sign=async q=>hex(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',k.privateKey,new TextEncoder().encode(q)));
+ let q=await rpc(fresh?'bind':'login',{n});const proof={q,signature:await sign(q)};
+ const token=await rpc('finish',proof);const role=await rpc('read',{token});if(role!=='viewer')throw Error('role');
+ async function denied(op,a){try{await rpc(op,a)}catch(e){if(e.message==='denied')return;throw e}throw Error('unexpected grant')}
+ await denied('finish',proof);await denied('write',{token});
+ if(!fresh){q=await rpc('revoke',{n});await rpc('finish',{q,signature:await sign(q)});await denied('read',{token});await denied('login',{n});
+ const clear=indexedDB.deleteDatabase('w15-fixture');await req(clear)}
+ out.textContent=fresh?'PASS: привязка, подпись, сессия, replay и права':'PASS: ключ после закрытия, новая сессия, отзыв и отказ';
+ }catch(e){out.textContent='STOP: '+e.message}finally{busy=false}};
 </script></html>
