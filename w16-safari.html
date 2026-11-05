@@ -1,0 +1,27 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'"><title>VA Office · проверка Safari</title>
+<style>*{box-sizing:border-box}body{background:#031b16;color:#f2f6f3;font:17px/1.45 system-ui;margin:0}main{max-width:28rem;margin:auto;padding:26px 18px}h1{font:32px Georgia,serif}p{color:#bfd3c8}button{font:inherit;border:0;border-radius:10px;padding:12px 16px;background:#9fd6b1;color:#031b16;display:block;margin:10px 0}button:disabled{opacity:.55}output{display:block;border-left:2px solid #c8aa74;padding:10px;margin-top:16px}</style></head><body><main><h1>Проверка Safari</h1><p>Один раз создайте тестовый ключ. Запомните его метку. Закройте все вкладки Safari, снова откройте эту ссылку и нажмите «Проверить». Повторите ещё раз.</p><button id="create">Создать тестовый ключ</button><button id="check">Проверить</button><output id="result" aria-live="polite">Готово к проверке.</output></main><script>
+const create=document.querySelector('#create'),check=document.querySelector('#check'),out=document.querySelector('#result');
+const req=r=>new Promise((ok,no)=>{r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+let done=false;
+async function run(make){
+ create.disabled=check.disabled=true;let db;
+ try{
+ if(window.navigator.standalone||matchMedia('(display-mode: standalone)').matches)throw Error('Откройте эту ссылку в обычном Safari.');
+ const o=indexedDB.open('va-w16-safari-only-v1',1);o.onupgradeneeded=()=>o.result.createObjectStore('fixture');db=await req(o);
+ let record=await req(db.transaction('fixture').objectStore('fixture').get('key'));
+ if(!record){
+ if(!make)throw Error('Ключ не найден. Если вы уже создавали ключ, сообщите этот результат.');
+ const pair=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},false,['sign','verify']);
+ record={pair,count:0};const tx=db.transaction('fixture','readwrite');tx.objectStore('fixture').add(record,'key');await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onabort=()=>no(tx.error)});
+ }
+ if(record.pair.privateKey.extractable)throw Error('Проверка защиты ключа не пройдена.');
+ const nonce=crypto.getRandomValues(new Uint8Array(32)),alg='RSASSA-PKCS1-v1_5',sig=await crypto.subtle.sign(alg,record.pair.privateKey,nonce);
+ if(!await crypto.subtle.verify(alg,record.pair.publicKey,sig,nonce))throw Error('Проверка ключа не пройдена.');
+ const digest=await crypto.subtle.digest('SHA-256',await crypto.subtle.exportKey('spki',record.pair.publicKey));
+ const label=Array.from(new Uint8Array(digest).slice(0,6),b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+ if(!make){record.count++;const tx=db.transaction('fixture','readwrite');tx.objectStore('fixture').put(record,'key');await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onabort=()=>no(tx.error)});}
+ done=true;out.textContent=(make?'Ключ готов.':'Проверка '+record.count+' пройдена.')+' Метка '+label+'. Закройте вкладки перед следующей проверкой.';
+ }catch(e){out.textContent=e.message||'Проверка прервана.'}finally{if(db)db.close();create.disabled=check.disabled=done}
+}
+create.onclick=()=>run(true);check.onclick=()=>run(false);
+</script></body></html>
